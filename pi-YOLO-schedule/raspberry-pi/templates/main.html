@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로봇청소기 통합 관리 & 제어</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: white;
+        }
+        .container {
+            max-width: 800px;  /* Increased from 600px */
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .battery-status {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .control-button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            background-color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            text-align: center;
+            text-decoration: none;
+            color: black;
+        }
+        .control-button:hover {
+            background-color: #f8f8f8;
+            border-color: #999;
+        }
+        .streaming-button {
+            grid-column: span 2;  /* Make streaming button span full width */
+        }
+    </style>
+<head>
+    <!-- Existing head content remains unchanged -->
+    <script>
+        // Add API functions for control buttons
+        function controlRobot(action) {
+            fetch(`/control/${action}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message); // 서버에서 반환된 메시지 표시
+                })
+                .catch(error => console.error('Error controlling robot:', error));
+        }
+        function updateBatteryStatus() {
+            fetch('/battery-status')
+                .then(response => response.json())
+                .then(data => {
+                    // 배터리 상태를 업데이트
+                    document.querySelector('.battery-status').textContent = data.battery + '%';
+                })
+                .catch(error => console.error('Error fetching battery status:', error));
+        }
+
+        // 페이지 로드 시 배터리 상태를 첫 번째로 가져오기
+        window.onload = updateBatteryStatus;
+        setInterval(updateBatteryStatus, 1000)
+    </script>
+
+
+</head>
+<body>
+    <div class="container">
+        <h1>로봇청소기 통합 관리 & 제어</h1>
+        
+        <div class="section">
+            <div class="section-title">스케줄 관리</div>
+            <a href="/schedule" class="control-button">이동</a>
+        </div>
+
+        <div class="section">
+            <div class="section-title">배터리 상태</div>
+            <div class="battery-status">%</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">청소 제어</div>
+            <div class="button-group">
+                <button class="control-button" onclick="controlRobot('start')">시작</button>
+                <button class="control-button" onclick="controlRobot('restart')">재시작</button>
+                <button class="control-button" onclick="controlRobot('pause')">일시 정지</button>
+                <button class="control-button" onclick="controlRobot('return')">충전대로 복귀</button>
+                <a href="/streaming" class="control-button streaming-button">스트리밍</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

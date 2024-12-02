@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스케줄 제안</title>
+    <style>
+        /* Previous styles remain unchanged */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: white;
+        }
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .chart-title {
+            font-size: 24px;
+            margin-bottom: 15px;  /* Reduced to accommodate buttons */
+            font-weight: bold;
+        }
+        .chart {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+        }
+        .row {
+            display: flex;
+            align-items: center;
+        }
+        .day-label {
+            width: 30px;
+            text-align: left;
+            margin-right: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            height: 24px;
+            transform: translateY(-15px);
+        }
+        .data-row {
+            display: flex;
+            width: 600px;
+            height: 24px;
+            border: 1px solid #000;
+        }
+        .data-point {
+            width: 25px;
+            height: 100%;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .data-point.active {
+            background-color: #50BCDF;
+        }
+        .hour-label {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #666;
+        }
+        .data-container {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        .return-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 1px solid #000;
+            background-color: white;
+            cursor: pointer;
+            text-decoration: none;
+            color: black;
+        }
+        .return-button:hover {
+            background-color: #f0f0f0;
+        }
+
+        /* Modified styles for buttons */
+        .header-buttons {
+            margin-bottom: 20px;  /* Space between buttons and chart */
+            display: flex;
+            gap: 10px;
+        }
+        .reservation-button {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: 1px solid #000;
+            background-color: white;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;           /* Added for text alignment */
+            align-items: center;     /* Added for text alignment */
+            justify-content: center; /* Added for text alignment */
+            white-space: nowrap;     /* Prevent text wrapping */
+        }
+        .reservation-button:hover {
+            background-color: #f0f0f0;
+        }
+        .day-reservation {
+            margin-left: 20px;
+            width: 60px;
+            height: 24px;
+            transform: translateY(-10px);
+        }
+    </style>
+    <!-- Existing head content remains unchanged -->
+    <script>
+        // Add API functions for reservation buttons
+        async function makeReservation(day) {
+            try {
+                const response = await fetch('/api/reservation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ day: day })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || '예약 실패');
+                }
+                alert('예약이 성공적으로 완료되었습니다.');
+            } catch (error) {
+                alert('오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        async function makeFullReservation() {
+            try {
+                const response = await fetch('/api/reservation/full', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.message || '전체 예약 실패');
+                }
+                alert('전체 예약이 성공적으로 완료되었습니다.');
+            } catch (error) {
+                alert('오류가 발생했습니다: ' + error.message);
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="chart-container">
+        <div class="chart-title">스케줄 제안</div>
+        <div class="header-buttons">
+            <button class="reservation-button" onclick="makeFullReservation()">전체예약</button>
+        </div>
+        <div class="chart">
+            {% for day, binary_data in data.items() %}
+            <div class="row">
+                <div class="day-label">{{ day }}</div>
+                <div class="data-container">
+                    <div class="data-row">
+                        {% for point in binary_data %}
+                        <div class="data-point {% if point %}active{% endif %}">
+                            <div class="hour-label">{{ loop.index }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button class="reservation-button day-reservation" onclick="makeReservation('{{ day }}')">예약</button>
+            </div>
+            {% endfor %}
+        </div>
+        <a href="/" class="return-button">메인으로 돌아가기</a>
+    </div>
+</body>
+</html>

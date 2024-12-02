@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스케줄 제안</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: white;
+            padding: 40px;
+        }
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1400px;
+            padding: 40px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .chart-title {
+            font-size: 28px;
+            margin-bottom: 40px;
+            font-weight: bold;
+        }
+        .chart {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            width: 100%;
+        }
+        .row {
+            display: flex;
+            align-items: flex-start;
+        }
+        .day-label {
+            width: 60px;
+            text-align: left;
+            margin-right: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .data-container {
+            position: relative;
+            flex-grow: 1;
+            height: 40px;
+            margin-bottom: 40px;
+            margin-right: 20px;
+        }
+        .data-row {
+            width: 100%;
+            height: 100%;
+            background-color: #f5f5f5;
+            position: relative;
+            border-radius: 4px;
+        }
+        .schedule-block {
+            position: absolute;
+            height: 100%;
+            background-color: #50BCDF;
+            border-radius: 4px;
+            transition: opacity 0.2s;
+            cursor: pointer;
+        }
+        .schedule-block:hover {
+            opacity: 0.8;
+        }
+        .time-labels {
+            display: flex;
+            position: absolute;
+            width: 100%;
+            bottom: -25px;
+        }
+        .time-label {
+            position: absolute;
+            font-size: 11px;
+            color: #666;
+            transform: translateX(-50%);
+        }
+        .time-label::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            height: 4px;
+            width: 1px;
+            background-color: #ccc;
+        }
+        .reserve-button {
+            padding: 8px 16px;
+            font-size: 14px;
+            background-color: #50BCDF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .reserve-button:hover {
+            background-color: #3a8fa6;
+        }
+        .return-button {
+            margin-top: 40px;
+            padding: 12px 24px;
+            font-size: 16px;
+            background-color: #50BCDF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+        .return-button:hover {
+            background-color: #3a8fa6;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 5px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <div class="chart-title">스케줄 제안</div>
+        <div class="chart">
+            {% set days = ['월', '화', '수', '목', '금', '토', '일'] %}
+            {% for i in range(7) %}
+            <div class="row">
+                <div class="day-label">{{ days[i] }}</div>
+                <div class="data-container">
+                    <div class="data-row" id="row-{{ i }}"></div>
+                    <div class="time-labels">
+                        {% for hour in range(25) %}
+                        <div class="time-label" style="left: {{ (hour/24 * 100) }}%">
+                            {{ "{:02d}".format(hour) }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button class="reserve-button" onclick="reserveDay({{ i }})">예약</button>
+            </div>
+            {% endfor %}
+        </div>
+        <a href="/" class="return-button">메인으로 돌아가기</a>
+    </div>
+
+    <div id="reserveModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>스케줄 예약</h2>
+            <p id="modalText"></p>
+            <button id="confirmReserve" class="reserve-button">예약 확인</button>
+        </div>
+    </div>
+
+    <script>
+        const currentTime = new Date('{{ current_time }}');
+        // const currentDay = currentTime.getDay();
+        const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
+
+        function createScheduleBlocks() {
+            const data = {{ data | tojson | safe }};
+            
+            for (let i = 0; i < 7; i++) {
+                const row = document.getElementById(`row-${i}`);
+                if (data[i]) {
+                    data[i].forEach(schedule => {
+                        const start = new Date(`1970-01-01T${schedule.timestamp1}:00`);
+                        const end = new Date(`1970-01-01T${schedule.timestamp2}:00`);
+                        
+                        const startHour = start.getHours() + start.getMinutes() / 60;
+                        const endHour = end.getHours() + end.getMinutes() / 60;
+                        
+                        const startPercent = (startHour / 24) * 100;
+                        const endPercent = (endHour / 24) * 100;
+                        const width = endPercent - startPercent;
+                        
+                        const block = document.createElement('div');
+                        block.className = 'schedule-block';
+                        block.style.left = `${startPercent}%`;
+                        block.style.width = `${width}%`;
+                        
+                        block.title = `${dayNames[i]} / ${schedule.timestamp1} - ${schedule.timestamp2}`;
+                        
+                        block.onclick = () => reserveSchedule(schedule, i);
+                        
+                        row.appendChild(block);
+                    });
+                }
+            }
+        }
+
+        function reserveDay(day) {
+            showModal(`${dayNames[day]}요일의 스케줄을 예약하시겠습니까?`, () => {
+                fetch('/reserve_day', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ day: day }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert('예약 중 오류가 발생했습니다.');
+                });
+            });
+        }
+
+        function reserveSchedule(schedule, day) {
+            showModal(`${dayNames[day]} / ${schedule.timestamp1} - ${schedule.timestamp2} 스케줄을 예약하시겠습니까?`, () => {
+                fetch('/reserve_schedule', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ...schedule, day: day }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert('예약 중 오류가 발생했습니다.');
+                });
+            });
+        }
+
+        function showModal(text, onConfirm) {
+            const modal = document.getElementById('reserveModal');
+            const modalText = document.getElementById('modalText');
+            const confirmButton = document.getElementById('confirmReserve');
+            const closeButton = modal.querySelector('.close');
+
+            modalText.textContent = text;
+            modal.style.display = 'block';
+
+            confirmButton.onclick = () => {
+                onConfirm();
+                modal.style.display = 'none';
+            };
+
+            closeButton.onclick = () => {
+                modal.style.display = 'none';
+            };
+
+            window.onclick = (event) => {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            };
+        }
+
+        document.addEventListener('DOMContentLoaded', createScheduleBlocks);
+    </script>
+</body>
+</html>
+
