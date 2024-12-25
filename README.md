@@ -2,6 +2,10 @@
 
 중앙대학교 전자전기공학부 2024년 종합설계
 
+## SLIDE
+
+[Link](https://docs.google.com/presentation/d/1bu00qnf8BhKrAioE4QVCDo2GlAEcx29n/edit?usp=sharing&ouid=104737821256701383027&rtpof=true&sd=true)
+
 ## 라즈베리파이
 
 
